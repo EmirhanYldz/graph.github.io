@@ -20,17 +20,11 @@
 
     <script type="text/javascript">
         const adjVertices = {
-            "A": ["E"],
-            "B": ["D", "E","J"],
-            "C": ["D","J"],
-            "D": ["B", "C", "E","H","K"],
-            "E": ["A", "B", "D","F","G"],
-			"F": ["E","G"],
-            "G": ["F", "E"],
-            "H": ["D","K"],
-            "J": ["B", "C"],
-            "K": ["D","H"]
-        };
+    		A: { B: 1, C: 4 },
+    		B: { A: 1, C: 2, D: 5 },
+    		C: { A: 4, B: 2, D: 1 },
+    		D: { B: 5, C: 1 },
+		};
 
         
         const nodes = new vis.DataSet();
@@ -46,23 +40,24 @@
 
         const network = new vis.Network(container, data, options);
 
-        // Add nodes and edges to the graph
         function populateGraph(adjVertices) {
 			const addedEdges = new Set(); // To track added edges
 
-			for (const node in adjVertices) {
-				nodes.add({ id: node, label: node });
-				for (const neighbor of adjVertices[node]) {
+    		for (const node in adjVertices) {
+        		nodes.add({ id: node, label: node });
+
+        		for (const neighbor in adjVertices[node]) {
 					const edgeId = `${node}-${neighbor}`;
 					const reverseEdgeId = `${neighbor}-${node}`;
+            		const weight = adjVertices[node][neighbor];
 
-					// Check if the edge or its reverse is already added
-					if (!addedEdges.has(edgeId) && !addedEdges.has(reverseEdgeId)) {
-						edges.add({ id: edgeId, from: node, to: neighbor });
-						addedEdges.add(edgeId);
-					}
-				}
-			}
+            		// Check if the edge is already added
+           			if (!addedEdges.has(edgeId) && !addedEdges.has(reverseEdgeId)) {
+                		edges.add({ id: edgeId, from: node, to: neighbor, label: String(weight) });
+						addedEdges.add(edgeId)
+            		}
+        		}
+    		}
 		}
 
         populateGraph(adjVertices); // Populate the graph with your desired data
