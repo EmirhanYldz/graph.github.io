@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Graph Visualization with vis.js</title>
+    <style type="text/css">
+        #graph-container {
+            width: 800px;
+            height: 600px;
+            border: 1px solid lightgray;
+        }
+    </style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/vis/4.21.0/vis-network.min.js"></script>
+</head>
+<body>
+    <div id="graph-container"></div>
+	<button id="dfs-button">Run DFS</button>
+	<button id="bfs-button">Run BFS</button>
+
+    <script type="text/javascript">
+        const adjVertices = {
+            "A": ["E"],
+            "B": ["D", "E","J"],
+            "C": ["D","J"],
+            "D": ["B", "C", "E","H","K"],
+            "E": ["A", "B", "D","F","G"],
+			"F": ["E","G"],
+            "G": ["F", "E"],
+            "H": ["D","K"],
+            "J": ["B", "C"],
+            "K": ["D","H"]
+        };
+
+        
+        const nodes = new vis.DataSet();
+        const edges = new vis.DataSet();
+
+        const container = document.getElementById('graph-container');
+        const data = {
+            nodes: nodes,
+            edges: edges
+        };
+
+        const options = {};
+
+        const network = new vis.Network(container, data, options);
+
+        // Add nodes and edges to the graph
+        function populateGraph(adjVertices) {
+			const addedEdges = new Set(); // To track added edges
+
+			for (const node in adjVertices) {
+				nodes.add({ id: node, label: node });
+				for (const neighbor of adjVertices[node]) {
+					const edgeId = `${node}-${neighbor}`;
+					const reverseEdgeId = `${neighbor}-${node}`;
+
+					// Check if the edge or its reverse is already added
+					if (!addedEdges.has(edgeId) && !addedEdges.has(reverseEdgeId)) {
+						edges.add({ id: edgeId, from: node, to: neighbor });
+						addedEdges.add(edgeId);
+					}
+				}
+			}
+		}
+
+        populateGraph(adjVertices); // Populate the graph with your desired data
+		
+		const dfsButton = document.getElementById('dfs-button');
+        dfsButton.addEventListener('click', () => {
+            const startNode = prompt('Enter the starting node for DFS:');
+            if (startNode) {
+                runDFS(startNode);
+            }
+        });
+		const bfsButton = document.getElementById('bfs-button');
+        bfsButton.addEventListener('click', () => {
+            const startNode = prompt('Enter the starting node for BFS:');
+            if (startNode) {
+                runBFS(startNode);
+            }
+        });
+
+        function runDFS(startNode) {
+			const visited = new Set();
+			const stack = [startNode]; // Kullanacağımız yığıt veri yapısı
+
+			function dfsStep() {
+				if (stack.length === 0) {
+					return; // İşlem tamamlandı
+				}
+
+				const node = stack.pop();
+				visited.add(node);
+				network.body.data.nodes.update([{ id: node, color: 'yellow' }]);
+
+				setTimeout(() => {
+					for (const neighbor of adjVertices[node]) {
+						if (!visited.has(neighbor)) {
+							stack.push(neighbor);
+						}
+					}
+					dfsStep(); // Bir sonraki adımı tetikle
+				}, 1000); // 1 saniye beklemeyi ayarla
+			}
+
+			dfsStep(); // DFS'nin ilk adımını başlat
+		}
+		
+		function runBFS(startNode) {
+			const queue = [];
+			const visited = new Set();
+
+			queue.push(startNode);
+			visited.add(startNode);
+
+			function processQueue() {
+				if (queue.length === 0) {
+					return;
+				}
+
+				const current = queue.shift();
+				network.body.data.nodes.update([{ id: current, color: 'yellow' }]);
+
+				for (const neighbor of adjVertices[current]) {
+					if (!visited.has(neighbor)) {
+						visited.add(neighbor);
+						queue.push(neighbor);
+					}
+				}
+
+				setTimeout(processQueue, 1000); // 1 saniye beklet
+			}
+
+			processQueue();
+		}
+
+    </script>
+</body>
+</html>
