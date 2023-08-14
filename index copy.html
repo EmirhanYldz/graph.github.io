@@ -46,11 +46,10 @@
 
         const options = {
             nodes: {
-                color: 'blue',
+
             },
             edges: {
                 color: {
-                    color: 'black',
                     inherit: false
                 }
             },
@@ -62,7 +61,7 @@
 			const addedEdges = new Set(); // To track added edges
 
     		for (const node in adjVertices) {
-        		nodes.add({ id: node, label: node , color:'blue'});
+        		nodes.add({ id: node, label: node});
 
         		for (const neighbor in adjVertices[node]) {
 					const edgeId = `${node}-${neighbor}`;
@@ -71,7 +70,7 @@
 
             		// Check if the edge is already added
            			if (!addedEdges.has(edgeId) && !addedEdges.has(reverseEdgeId)) {
-                		edges.add({ id: edgeId, from: node, to: neighbor, label: String(weight), color:'black' });
+                		edges.add({ id: edgeId, from: node, to: neighbor, label: String(weight)});
 						addedEdges.add(edgeId)
             		}
         		}
