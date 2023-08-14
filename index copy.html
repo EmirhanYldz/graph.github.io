@@ -14,9 +14,10 @@
 </head>
 <body>
     <div id="graph-container"></div>
+    <button id="reset-button">RESET</button>
 	<button id="dfs-button">Run DFS</button>
 	<button id="bfs-button">Run BFS</button>
-	<button id="euler-button">Run EULER</button>
+	<button id="dijkstra-button">Run DIJKSTRA</button>
 
     <script type="text/javascript">
         const adjVertices = {
@@ -31,12 +32,25 @@
         const edges = new vis.DataSet();
 
         const container = document.getElementById('graph-container');
+        container.style.width = '800px';
+        container.style.height = '500px';
+
         const data = {
             nodes: nodes,
             edges: edges
         };
 
-        const options = {};
+        const options = {
+            nodes: {
+                color: 'blue',
+            },
+            edges: {
+                color: {
+                    color: 'black',
+                    inherit: false
+                }
+            },
+        };
 
         const network = new vis.Network(container, data, options);
 
@@ -44,7 +58,7 @@
 			const addedEdges = new Set(); // To track added edges
 
     		for (const node in adjVertices) {
-        		nodes.add({ id: node, label: node });
+        		nodes.add({ id: node, label: node , color:'blue'});
 
         		for (const neighbor in adjVertices[node]) {
 					const edgeId = `${node}-${neighbor}`;
@@ -53,7 +67,7 @@
 
             		// Check if the edge is already added
            			if (!addedEdges.has(edgeId) && !addedEdges.has(reverseEdgeId)) {
-                		edges.add({ id: edgeId, from: node, to: neighbor, label: String(weight) });
+                		edges.add({ id: edgeId, from: node, to: neighbor, label: String(weight), color:'black' });
 						addedEdges.add(edgeId)
             		}
         		}
@@ -76,12 +90,19 @@
                 runBFS(startNode);
             }
         });
-		const eulerButton = document.getElementById('euler-button');
-        bfsButton.addEventListener('click', () => {
-            const startNode = prompt('Enter the starting node for EULER:');
-            if (startNode) {
-                runBFS(startNode);
+		const dijkstraButton = document.getElementById('dijkstra-button');
+        dijkstraButton.addEventListener('click', () => {
+            const startNode = prompt('Enter the starting node for dijkstra:');
+            const endNode = prompt('Enter the ending node for dijkstra:')
+            if (startNode && endNode) {
+                runDijkstra(startNode,endNode);
             }
+        });
+        const resetButton = document.getElementById('reset-button');
+        resetButton.addEventListener('click', () => {
+            edges.clear();
+            nodes.clear();
+            populateGraph(adjVertices);
         });
 
         function runDFS(startNode) {
@@ -98,7 +119,7 @@
 				network.body.data.nodes.update([{ id: node, color: 'yellow' }]);
 
 				setTimeout(() => {
-					for (const neighbor of adjVertices[node]) {
+					for (const neighbor of Object.keys(adjVertices[node])) {
 						if (!visited.has(neighbor)) {
 							stack.push(neighbor);
 						}
@@ -125,7 +146,7 @@
 				const current = queue.shift();
 				network.body.data.nodes.update([{ id: current, color: 'yellow' }]);
 
-				for (const neighbor of adjVertices[current]) {
+				for (const neighbor of Object.keys(adjVertices[current])) {
 					if (!visited.has(neighbor)) {
 						visited.add(neighbor);
 						queue.push(neighbor);
@@ -138,6 +159,85 @@
 			processQueue();
 		}
 
+        function runDijkstra(start,finish){
+            const visitedNodes = new Set();
+            const distance = new Map();
+            const previousNode = new Map();
+
+            function getNodeWithShortestDistance() {
+                let result = null;
+                let shortestDistance = Infinity;
+                for (const node of distance.keys()) {
+                    if (!visitedNodes.has(node) && distance.get(node) < shortestDistance) {
+                        result = node;
+                        shortestDistance = distance.get(node);
+                    }
+                }
+                return result;
+            }
+
+            function getShortestPath(endNode) {
+                const path = [];
+                let currentNode = endNode;
+                while (currentNode !== null) {
+                    path.unshift(currentNode);
+                    currentNode = previousNode.get(currentNode);
+                }
+                return path;
+            }
+
+            for (const node of Object.keys(adjVertices)) {
+                if (node === start) {
+                    distance.set(node, 0);
+                } else {
+                    distance.set(node, Infinity);
+                }
+                previousNode.set(node, null);
+            }
+
+            while (!visitedNodes.has(finish)) {
+                const currentNode = getNodeWithShortestDistance();
+                visitedNodes.add(currentNode);
+
+                const neighbors = adjVertices[currentNode];
+                for (const neighbor in neighbors) {
+                    const cost = neighbors[neighbor];
+                    const totalCost = cost + distance.get(currentNode);
+                    if (totalCost < distance.get(neighbor)) {
+                        distance.set(neighbor, totalCost);
+                        previousNode.set(neighbor, currentNode);
+                    }
+                }
+            }
+
+            console.log("En kisa yol: " + getShortestPath(finish));
+            console.log("Maliyet: " + distance.get(finish));
+
+            async function colorNodesSequentially() {
+                const path = getShortestPath(finish);
+                const delay = ms => new Promise(resolve => setTimeout(resolve, ms));
+                let previousNode = path.shift();
+                network.body.data.nodes.update([{ id: previousNode, color: 'yellow' }]);
+
+                for (const node of path) {
+                    const edgeId =`${node}-${previousNode}`
+                    const reverseId =`${previousNode}-${node}`
+                    if(edges.get(edgeId)){
+                        edges.update({id:edgeId,color:{color:'yellow'}});
+                    }
+                    if(edges.get(reverseId)){
+                        edges.update({id:reverseId,color:{color:'yellow'}});
+                    }
+                    network.body.data.nodes.update([{ id: node, color: 'yellow' }]);
+                    previousNode=node;
+                    await delay(1000);  // 1 saniye bekler
+                }
+            }
+
+            colorNodesSequentially();
+        }
+
+    /*
 		const adjVertices2 = {
     		A: { B: 1, C: 4 },
     		B: { A: 1, C: 2, D: 5 },
@@ -147,6 +247,7 @@
 
 		const graph = new Graph(adjVertices2);
 		graph.Dijkstra("A", "D");
+    */
 
     </script>
 </body>
