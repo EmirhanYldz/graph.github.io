@@ -100,63 +100,55 @@
         });
         const resetButton = document.getElementById('reset-button');
         resetButton.addEventListener('click', () => {
+            timers.forEach(timeoutId => clearTimeout(timeoutId));
             edges.clear();
             nodes.clear();
             populateGraph(adjVertices);
         });
+        const timers = [];
+        async function colorNodes(nodeList){
+            const delay = ms => new Promise(resolve => {
+                const timeoutId = setTimeout(resolve, ms);
+                timers.push(timeoutId);
+            });
 
-        function runDFS(startNode) {
-			const visited = new Set();
-			const stack = [startNode]; // Kullanacağımız yığıt veri yapısı
+            for(const node of nodeList) {
+                network.body.data.nodes.update([{id: node, color: 'yellow'}]);
+                await delay(1000);
+            }
+        }
+        function runDFS(startNode){
+            const result = [];
 
-			function dfsStep() {
-				if (stack.length === 0) {
-					return; // İşlem tamamlandı
-				}
+            function DFSUtil(node, result) {
+                if (!result.includes(node)) {
+                    result.push(node);
+                    const neighbors = Object.keys(adjVertices[node]);
+                    for (const n of neighbors) {
+                        DFSUtil(n, result);
+                    }
+                }
+            }
 
-				const node = stack.pop();
-				visited.add(node);
-				network.body.data.nodes.update([{ id: node, color: 'yellow' }]);
+            DFSUtil(startNode, result);
+            colorNodes(result)
+        }
 
-				setTimeout(() => {
-					for (const neighbor of Object.keys(adjVertices[node])) {
-						if (!visited.has(neighbor)) {
-							stack.push(neighbor);
-						}
-					}
-					dfsStep(); // Bir sonraki adımı tetikle
-				}, 1000); // 1 saniye beklemeyi ayarla
-			}
-
-			dfsStep(); // DFS'nin ilk adımını başlat
-		}
-		
 		function runBFS(startNode) {
+            const result = [];
 			const queue = [];
-			const visited = new Set();
 
-			queue.push(startNode);
-			visited.add(startNode);
+            queue.push(startNode);
 
-			function processQueue() {
-				if (queue.length === 0) {
-					return;
-				}
+            while (queue.length > 0) {
+                const current = queue.shift();
 
-				const current = queue.shift();
-				network.body.data.nodes.update([{ id: current, color: 'yellow' }]);
-
-				for (const neighbor of Object.keys(adjVertices[current])) {
-					if (!visited.has(neighbor)) {
-						visited.add(neighbor);
-						queue.push(neighbor);
-					}
-				}
-
-				setTimeout(processQueue, 1000); // 1 saniye beklet
-			}
-
-			processQueue();
+                if (!result.includes(current)) {
+                    result.push(current);
+                    queue.push(...Object.keys(adjVertices[current]));
+                }
+            }
+            colorNodes(result);
 		}
 
         function runDijkstra(start,finish){
@@ -210,14 +202,16 @@
                 }
             }
 
-            console.log("En kisa yol: " + getShortestPath(finish));
-            console.log("Maliyet: " + distance.get(finish));
-
             async function colorNodesSequentially() {
                 const path = getShortestPath(finish);
-                const delay = ms => new Promise(resolve => setTimeout(resolve, ms));
+                const delay = ms => new Promise(resolve => {
+                    const timeoutId = setTimeout(resolve, ms);
+                    timers.push(timeoutId);
+                });
+
                 let previousNode = path.shift();
                 network.body.data.nodes.update([{ id: previousNode, color: 'yellow' }]);
+                await delay(1000);
 
                 for (const node of path) {
                     const edgeId =`${node}-${previousNode}`
