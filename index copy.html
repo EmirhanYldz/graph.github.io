@@ -20,6 +20,7 @@
     <button id="euler-button">Run EULER</button>
 	<button id="dijkstra-button">Run DIJKSTRA</button>
     <button id="tsp-button">Run TSP</button>
+    <button id="kruskal-button">Run KRUSKAL</button>
 
     <script type="text/javascript">
 
@@ -32,6 +33,7 @@
     		C: { A: 4, B: 2, D: 1 },
     		D: { B: 5, C: 1 },
 		};
+        let edgeList = [];
 
         const copiedAdjVertices = JSON.parse(JSON.stringify(adjVertices));
 
@@ -61,6 +63,7 @@
         const network = new vis.Network(container, data, options);
 
         function populateGraph(adjVertices) {
+            while(edgeList.length){edgeList.pop()}
 			const addedEdges = new Set(); // To track added edges
 
     		for (const node in adjVertices) {
@@ -74,6 +77,7 @@
             		// Check if the edge is already added
            			if (!addedEdges.has(edgeId) && !addedEdges.has(reverseEdgeId)) {
                 		edges.add({ id: edgeId, from: node, to: neighbor, label: String(weight)});
+                        edgeList.push({ source: node, next: neighbor, weight: weight })
 						addedEdges.add(edgeId)
             		}
         		}
@@ -122,6 +126,10 @@
             if (startNode) {
                 runTSP(startNode);
             }
+        });
+        const kruskalButton = document.getElementById('kruskal-button');
+        kruskalButton.addEventListener('click', () => {
+            runKruskal();
         });
 
         const timers = [];
@@ -402,6 +410,116 @@
             }
 
             colorNodesSequentially();
+        }
+
+        function runKruskal(){
+
+            let MST = {};
+            let cost = 0;
+            edgeList.sort((p1,p2) => p1.weight - p2.weight);
+
+            function removeEdge(u, v, graph) {
+                delete graph[u][v];
+                delete graph[v][u];
+            }
+
+            function addEdgeMST(src, dest, weight) {
+                if (!MST.hasOwnProperty(src)) {
+                    MST[src]={};
+                }
+                if (!MST.hasOwnProperty(dest)) {
+                    MST[dest]={};
+                }
+                MST[src][dest] = weight;
+                MST[dest][src] = weight;
+            }
+
+            function isCyclic(graph) {
+                const visited = new Set();
+
+                for (const key of Object.keys(graph)) {
+                    if (!visited.has(key)) {
+                        if (isCyclicUtil(key, visited, null, graph)) {
+                            return true;
+                        }
+                    }
+                }
+
+                return false;
+            }
+
+            function isCyclicUtil(current, visited, parent, graph)
+            {
+                visited.add(current);
+
+                for (const key of Object.keys(graph[current])) {
+                    if (!visited.has(key)) {
+                        if (isCyclicUtil(key, visited, current, graph)) {
+                            return true;
+                        }
+                    } else if (key !== parent) {
+                        return true;
+                    }
+                }
+
+                return false;
+            }
+
+            async function colorMST(){
+                const delay = ms => new Promise(resolve => {
+                    const timeoutId = setTimeout(resolve, ms);
+                    timers.push(timeoutId);
+                });
+
+                for (const edge of edgeList) {
+                    const source = edge.source;
+                    const next = edge.next;
+                    const weight = edge.weight;
+
+                    addEdgeMST(source, next, weight);
+                    const edgeId =`${source}-${next}`
+                    const reverseId =`${next}-${source}`
+                    if(edges.get(edgeId)){
+                        edges.update({id:edgeId,color:{color:'yellow'}});
+                    }
+                    if(edges.get(reverseId)){
+                        edges.update({id:reverseId,color:{color:'yellow'}});
+                    }
+                    await delay(1000);
+
+                    cost += weight;
+                    if (isCyclic(MST)) {
+                        removeEdge(source, next, MST);
+                        if(edges.get(edgeId)){
+                            edges.update({id:edgeId,color:{}});
+                        }
+                        if(edges.get(reverseId)){
+                            edges.update({id:reverseId,color:{}});
+                        }
+                        await delay(1000);
+                        cost -= weight;
+                    }
+                }
+                for(const node of Object.keys(MST)) {
+                    network.body.data.nodes.update([{id:node ,color: 'yellow'}]);
+                }
+            }
+            /*
+            for (const edge of edgeList) {
+                const source = edge.source;
+                const next = edge.next;
+                const weight = edge.weight;
+
+                addEdgeMST(source, next, weight);
+                cost += weight;
+                if (isCyclic(MST)) {
+                    removeEdge(source, next, MST);
+                    cost -= weight;
+                }
+            }
+            */
+
+            colorMST();
         }
 
 
