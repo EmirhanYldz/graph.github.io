@@ -65,3 +65,66 @@ class Graph {
         return path;
     }
 }
+
+class UnionFind {
+    constructor() {
+        this.parent = new Map();
+        this.rank = new Map();
+    }
+
+    makeSet(node) {
+        if (!this.parent.has(node)) {
+            this.parent.set(node, node);
+            this.rank.set(node, 0);
+        }
+    }
+
+    find(node) {
+        if (!this.parent.has(node)) return null;
+
+        if (this.parent.get(node) !== node) {
+            this.parent.set(node, this.find(this.parent.get(node)));
+        }
+        return this.parent.get(node);
+    }
+
+    union(node1, node2) {
+        const root1 = this.find(node1);
+        const root2 = this.find(node2);
+
+        if (root1 === null || root2 === null || root1 === root2) return;
+
+        const rank1 = this.rank.get(root1);
+        const rank2 = this.rank.get(root2);
+
+        if (rank1 > rank2) {
+            this.parent.set(root2, root1);
+        } else if (rank1 < rank2) {
+            this.parent.set(root1, root2);
+        } else {
+            this.parent.set(root2, root1);
+            this.rank.set(root1, rank1 + 1);
+        }
+    }
+
+    isConnected(node1, node2) {
+        const root1 = this.find(node1);
+        const root2 = this.find(node2);
+
+        return root1 !== null && root1 === root2;
+    }
+
+    listConnectedNodes() {
+        const connectedGroups = new Map();
+
+        this.parent.forEach((_, node) => {
+            const root = this.find(node);
+            if (!connectedGroups.has(root)) {
+                connectedGroups.set(root, []);
+            }
+            connectedGroups.get(root).push(node);
+        });
+
+        return Array.from(connectedGroups.values());
+    }
+}

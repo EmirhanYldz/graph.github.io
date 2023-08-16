@@ -21,6 +21,8 @@
 	<button id="dijkstra-button">Run DIJKSTRA</button>
     <button id="tsp-button">Run TSP</button>
     <button id="kruskal-button">Run KRUSKAL</button>
+    <button id="prim-button">Run PRIM</button>
+    <button id="boruvka-button">Run BORUVKA</button>
 
     <script type="text/javascript">
 
@@ -28,14 +30,18 @@
 
 
         let adjVertices = {
-    		A: { B: 1, C: 4 },
-    		B: { A: 1, C: 2, D: 5 },
-    		C: { A: 4, B: 2, D: 1 },
-    		D: { B: 5, C: 1 },
+    		A: { B:5 , C:7 },
+    		B: { A:5 , C:9 },
+    		C: { A:7 , B:9 , D:6 },
+    		D: { C:6 , E:2 , F:1 , G:5 },
+            E: { D:2 , F:3 },
+            F: { D:1 , E:3 , G:2 },
+            G: { D:5 , F:2 }
 		};
         let edgeList = [];
 
         const copiedAdjVertices = JSON.parse(JSON.stringify(adjVertices));
+
 
         const nodes = new vis.DataSet();
         const edges = new vis.DataSet();
@@ -130,6 +136,14 @@
         const kruskalButton = document.getElementById('kruskal-button');
         kruskalButton.addEventListener('click', () => {
             runKruskal();
+        });
+        const primButton = document.getElementById('prim-button');
+        primButton.addEventListener('click', () => {
+            runPrim();
+        });
+        const boruvkaButton = document.getElementById('boruvka-button');
+        boruvkaButton.addEventListener('click', () => {
+            runBoruvkaSollin();
         });
 
         const timers = [];
@@ -403,6 +417,7 @@
                     if(edges.get(reverseId)){
                         edges.update({id:reverseId,color:{color:'yellow'}});
                     }
+                    console.log(node);
                     network.body.data.nodes.update([{ id: node, color: 'yellow' }]);
                     previousNode=node;
                     await delay(1000);  // 1 saniye bekler
@@ -520,6 +535,215 @@
             */
 
             colorMST();
+        }
+
+        function runPrim(){
+            let MST = {};
+            const nodes = [...Object.keys(adjVertices)];
+            const node = nodes[0]; // İlk düğümü seçin veya istediğiniz düğümü seçin
+
+            function primUtil(graph, copy) {
+                let cost = Number.MAX_VALUE;
+                let currentNode = null;
+                let edgeNode = null;
+
+                for (const vertex of Object.keys(graph)) {
+                    const cEdgeInfo = getCloseEdge(vertex, cost, copy, graph);
+                    if (!cEdgeInfo) {
+                        continue;
+                    }
+                    const [cNode, eNode, cCost] = cEdgeInfo;
+                    if (cCost < cost) {
+                        currentNode = cNode;
+                        edgeNode = eNode;
+                        cost = cCost;
+                    }
+                }
+
+                addEdgeToGraph(currentNode, edgeNode, cost, graph);
+                const edgeId =`${currentNode}-${edgeNode}`
+                const reverseId =`${edgeNode}-${currentNode}`
+                if(edges.get(edgeId)){
+                    edges.update({id:edgeId,color:{color:'yellow'}});
+                }
+                if(edges.get(reverseId)){
+                    edges.update({id:reverseId,color:{color:'yellow'}});
+                }
+            }
+
+            function getCloseEdge(node, cost, copy, graph) {
+                let closeEdge = null;
+
+                for (const neighbor in copy[node]) {
+                    if (graph[node].hasOwnProperty(neighbor)) {
+                        continue;
+                    }
+                    if (copy[node][neighbor] < cost) {
+                        closeEdge = [node, neighbor, copy[node][neighbor]];
+                        cost = copy[node][neighbor];
+                    }
+                }
+
+                return closeEdge;
+            }
+
+            function addEdgeToGraph(src, dest, weight, graph) {
+                if (!graph.hasOwnProperty(src)) {
+                    graph[src]={};
+                }
+                if (!graph.hasOwnProperty(dest)) {
+                    graph[dest]={};
+                }
+                graph[src][dest]=weight;
+                graph[dest][src]=weight;
+            }
+
+            function addVertexToGraph(graph, vertex) {
+                if (!graph.hasOwnProperty(vertex)) {
+                    graph[vertex]={}
+                }
+            }
+
+            addVertexToGraph(MST, node);
+
+            async function colorPrim() {
+                const delay = ms => new Promise(resolve => {
+                    const timeoutId = setTimeout(resolve, ms);
+                    timers.push(timeoutId);
+                });
+
+                for (let i = 0; i < nodes.length - 1; i++) {
+                    primUtil(MST, adjVertices);
+                    await delay(1000);
+                }
+                for(const node of Object.keys(MST)){
+                    network.body.data.nodes.update([{id:node ,color: 'yellow'}]);
+                }
+            }
+
+            colorPrim();
+
+        }
+
+        function runBoruvkaSollin(){
+            let MST = {}
+            let copyAdjVertices = {}
+            let unionFind = new UnionFind();
+
+            function addEdgeToGraph(src, dest, weight, graph) {
+                if (!graph.hasOwnProperty(src)) {
+                    graph[src]={};
+                }
+                if (!graph.hasOwnProperty(dest)) {
+                    graph[dest]={};
+                }
+
+                graph[src][dest] = weight;
+                graph[dest][src] = weight;
+            }
+
+            function removeEdge(src, dest, graph) {
+                if (graph[src] && graph[src][dest]) {
+                    delete graph[src][dest];
+                }
+                if (graph[dest] && graph[dest][src]) {
+                    delete graph[dest][src];
+                }
+            }
+
+            function lessWeightEdge(groups, graph, copy, unionFind) {
+                let current = null;
+                let next = null;
+                let cost = Number.MAX_VALUE;
+
+                groups.forEach(node => {
+                    for (const neighbor of Object.keys(copy[node])) {
+                        if (!groups.includes(neighbor) && copy[node][neighbor] < cost) {
+                            current = node;
+                            next = neighbor;
+                            cost = copy[node][neighbor];
+                        }
+                    }
+                });
+
+                if (current === null || next === null || cost === Number.MAX_VALUE) {
+                    return;
+                }
+
+                addEdgeToGraph(current, next, cost, graph);
+                const edgeId =`${current}-${next}`
+                const reverseId =`${next}-${current}`
+                if(edges.get(edgeId)){
+                    edges.update({id:edgeId,color:{color:'yellow'}});
+                }
+                if(edges.get(reverseId)){
+                    edges.update({id:reverseId,color:{color:'yellow'}});
+                }
+                unionFind.union(current, next);
+            }
+
+            for (const vertex of Object.keys(adjVertices)) {
+                unionFind.makeSet(vertex);
+                for (const neighbor of Object.keys(adjVertices[vertex])) {
+                    addEdgeToGraph(vertex, neighbor, adjVertices[vertex][neighbor], copyAdjVertices);
+                }
+            }
+            async function colorBoruvka() {
+                const delay = ms => new Promise(resolve => {
+                    const timeoutId = setTimeout(resolve, ms);
+                    timers.push(timeoutId);
+                });
+
+                for (const vertex of Object.keys(adjVertices)) {
+                    let current = vertex;
+                    let next = null;
+                    let cost = Number.MAX_VALUE;
+
+                    for (const neighbor of Object.keys(adjVertices[current])) {
+                        if (adjVertices[current][neighbor] < cost) {
+                            next = neighbor;
+                            cost = adjVertices[current][next];
+                        }
+                    }
+
+                    addEdgeToGraph(current, next, cost, MST);
+                    const edgeId =`${current}-${next}`
+                    const reverseId =`${next}-${current}`
+                    if(edges.get(edgeId)){
+                        edges.update({id:edgeId,color: {color:'yellow'}} );
+                        await delay(1000);
+                    }
+                    if(edges.get(reverseId)){
+                        edges.update({id:reverseId,color:{color:'yellow'}});
+                        await delay(1000);
+                    }
+                    removeEdge(current, next, copyAdjVertices);
+                }
+
+                for (const vertex of Object.keys(MST)) {
+                    for (const neighbor of Object.keys(MST[vertex])) {
+                        unionFind.union(vertex, neighbor);
+                    }
+                }
+
+                let connectedNodes = unionFind.listConnectedNodes();
+
+                while (connectedNodes.length !== 1) {
+                    let nodeList = connectedNodes[0];
+                    let previousGraph = MST;
+                    lessWeightEdge(nodeList, MST, copyAdjVertices, unionFind);
+                    if(previousGraph!==MST){
+                        await delay(1000);
+                    }
+                    connectedNodes = unionFind.listConnectedNodes();
+                }
+
+                for(const node of Object.keys(MST)){
+                    network.body.data.nodes.update([{id:node ,color: 'yellow'}]);
+                }
+            }
+
+            colorBoruvka();
         }
 
 
