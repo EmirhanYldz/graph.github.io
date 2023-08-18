@@ -95,8 +95,9 @@
             });
             resetAdjVertices = JSON.parse(JSON.stringify(adjVertices));
             resetEdgeList = JSON.parse(JSON.stringify(edgeList));
-
-            timers.forEach(timeoutId => clearTimeout(timeoutId));
+            if(timers.length !== 0) {
+                timers.forEach(timeoutId => clearTimeout(timeoutId));
+            }
             edges.clear();
             nodes.clear();
             document.getElementById("textArea").value = '';
@@ -190,7 +191,9 @@
         });
         const resetButton = document.getElementById('reset-button');
         resetButton.addEventListener('click', () => {
-            timers.forEach(timeoutId => clearTimeout(timeoutId));
+            if (timers.length !== 0) {
+                timers.forEach(timeoutId => clearTimeout(timeoutId));
+            }
             edges.clear();
             nodes.clear();
             adjVertices = JSON.parse(JSON.stringify(resetAdjVertices));
