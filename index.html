@@ -70,7 +70,6 @@
 	<button id="bfs-button">Run BFS</button>
     <button id="euler-button">Run EULER</button>
 	<button id="dijkstra-button">Run DIJKSTRA</button>
-    <!--<button id="tsp-button">Run TSP</button>--> <!-- TSP algorithm not work correctly-->
     <button id="kruskal-button">Run KRUSKAL</button>
     <button id="prim-button">Run PRIM</button>
     <button id="boruvka-button">Run BORUVKA</button>
@@ -202,13 +201,6 @@
         const eulerButton = document.getElementById('euler-button');
         eulerButton.addEventListener('click', () => {
             runEuler();
-        });
-        const tspButton = document.getElementById('tsp-button');
-        tspButton.addEventListener('click', () => {
-            const startNode = prompt('Enter the starting node for TSP:');
-            if (startNode) {
-                runTSP(startNode);
-            }
         });
         const kruskalButton = document.getElementById('kruskal-button');
         kruskalButton.addEventListener('click', () => {
