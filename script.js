@@ -477,20 +477,20 @@ function runPrim(){
         let cost = Number.MAX_VALUE;
         let currentNode = null;
         let edgeNode = null;
+        let cEdge = null;
 
         for (const vertex of Object.keys(graph)) {
-            const cEdgeInfo = getCloseEdge(vertex, cost, copy, graph);
-            if (!cEdgeInfo) {
+            cEdge = getCloseEdge(vertex, cost, cEdge, copy, graph);
+            if (!cEdge) {
                 continue;
             }
-            const [cNode, eNode, cCost] = cEdgeInfo;
+            let [cNode, eNode, cCost] = cEdge;
             if (cCost < cost) {
                 currentNode = cNode;
                 edgeNode = eNode;
                 cost = cCost;
             }
         }
-
         addEdgeToGraph(currentNode, edgeNode, cost, graph);
         const edgeId =`${currentNode}-${edgeNode}`
         const reverseId =`${edgeNode}-${currentNode}`
@@ -503,17 +503,19 @@ function runPrim(){
         }
     }
 
-    function getCloseEdge(node, cost, copy, graph) {
-        let closeEdge = null;
+    function getCloseEdge(node, cost,cEdgeInfo, copy, graph) {
+        let closeEdge = cEdgeInfo;
 
-        for (const neighbor in copy[node]) {
-            if (graph[node].hasOwnProperty(neighbor)) {
+        for (const neighbor of Object.keys(copy[node])) {
+            if (Object.keys(graph).includes(neighbor)) {
                 continue;
             }
+
             if (copy[node][neighbor] < cost) {
                 closeEdge = [node, neighbor, copy[node][neighbor]];
                 cost = copy[node][neighbor];
             }
+
         }
 
         return closeEdge;
