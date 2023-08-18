@@ -464,20 +464,6 @@ function runKruskal(){
         textArea.value +='all nodes colored\n';
         textArea.value +='new MST : '+ JSON.stringify(MST, null, 2);
     }
-    /*
-    for (const edge of edgeList) {
-        const source = edge.source;
-        const next = edge.next;
-        const weight = edge.weight;
-
-        addEdgeMST(source, next, weight);
-        cost += weight;
-        if (isCyclic(MST)) {
-            removeEdge(source, next, MST);
-            cost -= weight;
-        }
-    }
-    */
 
     colorMST();
 }
@@ -485,7 +471,7 @@ function runKruskal(){
 function runPrim(){
     let MST = {};
     const nodes = [...Object.keys(adjVertices)];
-    const node = nodes[0]; // İlk düğümü seçin veya istediğiniz düğümü seçin
+    const node = nodes[0];
 
     function primUtil(graph, copy) {
         let cost = Number.MAX_VALUE;
