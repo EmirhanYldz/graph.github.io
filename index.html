@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Graph Visualization with vis.js</title>
+    <style type="text/css">
+        #graph-container {
+            width: 800px;
+            height: 600px;
+            border: 1px solid lightgray;
+        }
+    </style>
+    <style>
+        .container {
+            display: grid;
+            grid-template-columns: 2fr 5fr;
+            gap: 20px;
+        }
+
+        .left {
+            flex: 1;
+            padding: 20px;
+        }
+
+        .right {
+            flex: 1;
+            padding: 20px;
+        }
+
+        .text-area-div{
+            padding-top: 20px;
+        }
+
+        .fixed-textarea {
+            resize: none;
+            width: 300px;
+            height: 100px;
+        }
+
+        .fixed-textarea2 {
+            resize: none;
+            width: 340px;
+            height: 260px;
+        }
+
+        form {
+            padding: 10px;
+            border: 1px solid #dddddd;
+            border-radius: 5px;
+        }
+    </style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/vis/4.21.0/vis-network.min.js"></script>
+	<script src="script.js"></script>
+</head>
+<body>
+<div class = "container">
+    <div class = "left">
+        <form id="graphForm">
+            <p>Enter edges (format: node1-node2-weight, separate each edge with a comma):</p>
+            <textarea class ="fixed-textarea" name="edges" id="edges" rows="5" cols="30" required></textarea><br>
+            <input type="submit" value="Create Graph">
+        </form>
+        <div class="text-area-div">
+            <textarea id="textArea" class ="fixed-textarea2" readonly>Deneme</textarea>
+        </div>
+    </div>
+    <div id="graph-container" class = "right"></div>
+</div>
+    <button id="reset-button">RESET</button>
+	<button id="dfs-button">Run DFS</button>
+	<button id="bfs-button">Run BFS</button>
+    <button id="euler-button">Run EULER</button>
+	<button id="dijkstra-button">Run DIJKSTRA</button>
+    <button id="tsp-button">Run TSP</button>
+    <button id="kruskal-button">Run KRUSKAL</button>
+    <button id="prim-button">Run PRIM</button>
+    <button id="boruvka-button">Run BORUVKA</button>
+    <button id="reverse-button">Run REVERSE</button>
+    <button id="welsh-button">Run COLORING</button>
+
+    <script type="text/javascript">
+        let adjVertices = {};
+        let edgeList = [];
+        let resetAdjVertices;
+        let resetEdgeList;
+
+        document.getElementById("graphForm").addEventListener("submit", function(event) {
+            event.preventDefault();
+            adjVertices = {};
+            edgeList = [];
+            const edgesText = document.getElementById("edges").value;
+            const edgesArray = edgesText.split(",").map(edge => edge.trim());
+            edgesArray.forEach(edge => {
+                const [src, dest, weight] = edge.split("-");
+                addEdgeAdj(src,dest,weight);
+                edgeList.push({ source: src, next: dest, weight: weight })
+            });
+            resetAdjVertices = JSON.parse(JSON.stringify(adjVertices));
+            resetEdgeList = JSON.parse(JSON.stringify(edgeList));
+
+            timers.forEach(timeoutId => clearTimeout(timeoutId));
+            edges.clear();
+            nodes.clear();
+            document.getElementById("textArea").value = '';
+            populateGraph(adjVertices);
+        });
+
+        const nodes = new vis.DataSet();
+        const edges = new vis.DataSet();
+
+        const container = document.getElementById('graph-container');
+        container.style.width = '800px';
+        container.style.height = '500px';
+
+        const data = {
+            nodes: nodes,
+            edges: edges
+        };
+
+        const options = {
+            nodes: {
+
+            },
+            edges: {
+                color: {
+                    inherit: false
+                }
+            },
+        };
+
+        const network = new vis.Network(container, data, options);
+
+        function removeEdgeAdj(u, v) {
+            delete adjVertices[u][v];
+            delete adjVertices[v][u];
+        }
+
+        function addEdgeAdj(src, dest, weight) {
+            if (!adjVertices.hasOwnProperty(src)) {
+                adjVertices[src]={};
+            }
+            if (!adjVertices.hasOwnProperty(dest)) {
+                adjVertices[dest]={};
+            }
+            adjVertices[src][dest] = weight;
+            adjVertices[dest][src] = weight;
+        }
+
+        function populateGraph(adjVertices) {
+            //while(edgeList.length){edgeList.pop()}
+			const addedEdges = new Set(); // To track added edges
+
+    		for (const node in adjVertices) {
+        		nodes.add({ id: node, label: node});
+
+        		for (const neighbor in adjVertices[node]) {
+					const edgeId = `${node}-${neighbor}`;
+					const reverseEdgeId = `${neighbor}-${node}`;
+            		const weight = adjVertices[node][neighbor];
+
+            		// Check if the edge is already added
+           			if (!addedEdges.has(edgeId) && !addedEdges.has(reverseEdgeId)) {
+                		edges.add({ id: edgeId, from: node, to: neighbor, label: String(weight)});
+                        //edgeList.push({ source: node, next: neighbor, weight: weight })
+						addedEdges.add(edgeId)
+            		}
+        		}
+    		}
+		}
+		
+		const dfsButton = document.getElementById('dfs-button');
+        dfsButton.addEventListener('click', () => {
+            const startNode = prompt('Enter the starting node for DFS:');
+            if (startNode) {
+                runDFS(startNode);
+            }
+        });
+		const bfsButton = document.getElementById('bfs-button');
+        bfsButton.addEventListener('click', () => {
+            const startNode = prompt('Enter the starting node for BFS:');
+            if (startNode) {
+                runBFS(startNode);
+            }
+        });
+		const dijkstraButton = document.getElementById('dijkstra-button');
+        dijkstraButton.addEventListener('click', () => {
+            const startNode = prompt('Enter the starting node for dijkstra:');
+            const endNode = prompt('Enter the ending node for dijkstra:')
+            if (startNode && endNode) {
+                runDijkstra(startNode,endNode);
+            }
+        });
+        const resetButton = document.getElementById('reset-button');
+        resetButton.addEventListener('click', () => {
+            timers.forEach(timeoutId => clearTimeout(timeoutId));
+            edges.clear();
+            nodes.clear();
+            adjVertices = JSON.parse(JSON.stringify(resetAdjVertices));
+            edgeList = JSON.parse(JSON.stringify(resetEdgeList));
+            document.getElementById("textArea").value = '';
+            populateGraph(adjVertices);
+        });
+        const eulerButton = document.getElementById('euler-button');
+        eulerButton.addEventListener('click', () => {
+            runEuler();
+        });
+        const tspButton = document.getElementById('tsp-button');
+        tspButton.addEventListener('click', () => {
+            const startNode = prompt('Enter the starting node for TSP:');
+            if (startNode) {
+                runTSP(startNode);
+            }
+        });
+        const kruskalButton = document.getElementById('kruskal-button');
+        kruskalButton.addEventListener('click', () => {
+            runKruskal();
+        });
+        const primButton = document.getElementById('prim-button');
+        primButton.addEventListener('click', () => {
+            runPrim();
+        });
+        const boruvkaButton = document.getElementById('boruvka-button');
+        boruvkaButton.addEventListener('click', () => {
+            runBoruvkaSollin();
+        });
+        const reverseButton = document.getElementById('reverse-button');
+        reverseButton.addEventListener('click', () => {
+            runReverseDelete();
+        });
+        const welshButton = document.getElementById('welsh-button');
+        welshButton.addEventListener('click', () => {
+            runWelshPowell();
+        });
+        const textArea = document.getElementById('textArea');
+        const timers = [];
+
+    </script>
+</body>
+</html>
